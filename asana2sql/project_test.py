@@ -55,11 +55,11 @@ class ProjectTestCase(unittest.TestCase):
                 fixtures.task(id=1), fixtures.task(id=2), fixtures.task(id=3)]
 
         project = Project(self.asana_client, self.db_client, self.workspace, self.config,
-                          [SimpleField("id", SqlType.INTEGER)])
+                          [SimpleField("gid", SqlType.INTEGER)])
         project.export()
 
         self.asana_client.tasks.find_by_project.assert_called_with(
-                1234, fields="id")
+                1234, fields="gid")
         self.db_client.read.assert_not_called()
         self.db_client.write.assert_has_calls([
                 mock.call('INSERT OR REPLACE INTO "test_table" (id) VALUES (?);', 1),
@@ -74,11 +74,11 @@ class ProjectTestCase(unittest.TestCase):
                 fixtures.task(id=2), fixtures.task(id=3), fixtures.task(id=4)]
 
         project = Project(self.asana_client, self.db_client, self.workspace, self.config,
-                          [SimpleField("id", SqlType.INTEGER)])
+                          [SimpleField("gid", SqlType.INTEGER)])
         project.synchronize()
 
         self.asana_client.tasks.find_by_project.assert_called_with(
-                1234, fields="id")
+                1234, fields="gid")
         self.db_client.read.assert_called_with('SELECT id FROM "test_table";')
         self.db_client.write.assert_called_with(
                 'DELETE FROM "test_table" WHERE id = ?;', 1)

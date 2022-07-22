@@ -9,7 +9,7 @@ class AssigneeFieldTestCase(unittest.TestCase):
     def test_assignee_field(self):
         ws = mock.Mock(spec=workspace.Workspace)
 
-        user = {"id": 123, "name": "user"}
+        user = {"gid": 123, "name": "user"}
 
         field = fields.AssigneeField(ws)
 
@@ -27,7 +27,7 @@ class ParentIdFieldTestCase(unittest.TestCase):
 
         self.assertIsNone(field.get_data_from_task({}))
         self.assertEqual(
-                field.get_data_from_task({"parent": {"id": 123, "name": "task"}}),
+                field.get_data_from_task({"parent": {"gid": 123, "name": "task"}}),
                 123)
 
 
@@ -38,7 +38,7 @@ class ProjectsFieldTestCase(unittest.TestCase):
 
         field = fields.ProjectsField(ws)
 
-        self.assertIsNone(field.get_data_from_task({"id": 123}))
+        self.assertIsNone(field.get_data_from_task({"gid": 123}))
 
         ws.task_memberships.assert_called_once_with(123)
 
@@ -49,11 +49,11 @@ class ProjectsFieldTestCase(unittest.TestCase):
         field = fields.ProjectsField(ws)
 
         self.assertIsNone(field.get_data_from_task({
-            "id": 123,
+            "gid": 123,
             "projects": [
-                {"id": 1, "name": "Project 1"},
-                {"id": 2, "name": "Project 2"},
-                {"id": 3, "name": "Project 3"},
+                {"gid": 1, "name": "Project 1"},
+                {"gid": 2, "name": "Project 2"},
+                {"gid": 3, "name": "Project 3"},
             ]}))
 
         ws.task_memberships.assert_called_once_with(123)
@@ -67,16 +67,16 @@ class ProjectsFieldTestCase(unittest.TestCase):
         field = fields.ProjectsField(ws)
 
         self.assertIsNone(field.get_data_from_task({
-            "id": 123,
+            "gid": 123,
             "projects": [
-                {"id": 2, "name": "Project 2"},
-                {"id": 3, "name": "Project 3"},
-                {"id": 4, "name": "Project 4"},
+                {"gid": 2, "name": "Project 2"},
+                {"gid": 3, "name": "Project 3"},
+                {"gid": 4, "name": "Project 4"},
             ]}))
 
         ws.task_memberships.assert_called_once_with(123)
         ws.add_task_to_project.assert_called_once_with(
-                123, {"id": 4, "name": "Project 4"})
+                123, {"gid": 4, "name": "Project 4"})
         ws.remove_task_from_project.assert_called_once_with(123, 1)
 
 
@@ -98,7 +98,7 @@ class CustomFieldsFieldTestCase(unittest.TestCase):
 
         field = fields.CustomFields(ws)
 
-        self.assertIsNone(field.get_data_from_task({"id": 123}))
+        self.assertIsNone(field.get_data_from_task({"gid": 123}))
 
         ws.add_custom_field_value.assert_not_called()
         ws.remove_custom_field_value.assert_not_called()
@@ -113,11 +113,11 @@ class CustomFieldsFieldTestCase(unittest.TestCase):
         field = fields.CustomFields(ws)
 
         self.assertIsNone(field.get_data_from_task({
-            "id": 123,
+            "gid": 123,
             "custom_fields": [
-                {"id": 1, "type": "text", "text_value": "foo"},
-                {"id": 2, "type": "number", "number_value": 42},
-                {"id": 3, "type": "enum", "enum_value": 525},
+                {"gid": 1, "type": "text", "text_value": "foo"},
+                {"gid": 2, "type": "number", "number_value": 42},
+                {"gid": 3, "type": "enum", "enum_value": 525},
             ]}))
 
         ws.add_custom_field_value.assert_not_called()
@@ -134,19 +134,19 @@ class CustomFieldsFieldTestCase(unittest.TestCase):
         field = fields.CustomFields(ws)
 
         self.assertIsNone(field.get_data_from_task({
-            "id": 123,
+            "gid": 123,
             "custom_fields": [
-                {"id": 2, "type": "number", "number_value": 43},
-                {"id": 3, "type": "enum", "enum_value": 625},
-                {"id": 4, "type": "text", "text_value": "new value"},
-                {"id": 5, "type": "text", "text_value": "new field"},
+                {"gid": 2, "type": "number", "number_value": 43},
+                {"gid": 3, "type": "enum", "enum_value": 625},
+                {"gid": 4, "type": "text", "text_value": "new value"},
+                {"gid": 5, "type": "text", "text_value": "new field"},
             ]}))
 
         ws.add_custom_field_value.assert_has_calls([
-                mock.call(123, {"id": 2, "type": "number", "number_value": 43}),
-                mock.call(123, {"id": 3, "type": "enum", "enum_value": 625}),
-                mock.call(123, {"id": 4, "type": "text", "text_value": "new value"}),
-                mock.call(123, {"id": 5, "type": "text", "text_value": "new field"}),
+                mock.call(123, {"gid": 2, "type": "number", "number_value": 43}),
+                mock.call(123, {"gid": 3, "type": "enum", "enum_value": 625}),
+                mock.call(123, {"gid": 4, "type": "text", "text_value": "new value"}),
+                mock.call(123, {"gid": 5, "type": "text", "text_value": "new field"}),
                 ])
         ws.remove_custom_field_value.assert_called_once_with(123, 1)
 
@@ -159,7 +159,7 @@ class FollowerFieldTestCase(unittest.TestCase):
 
         field = fields.FollowersField(ws)
 
-        self.assertIsNone(field.get_data_from_task({"id": 123}))
+        self.assertIsNone(field.get_data_from_task({"gid": 123}))
 
         ws.add_follower.assert_not_called()
         ws.remove_follower.assert_not_called()
@@ -171,11 +171,11 @@ class FollowerFieldTestCase(unittest.TestCase):
         field = fields.FollowersField(ws)
 
         self.assertIsNone(field.get_data_from_task({
-            "id": 123,
+            "gid": 123,
             "followers": [
-                { "id": 1, "name": "foo" },
-                { "id": 2, "name": "bar" },
-                { "id": 3, "name": "baz" }
+                { "gid": 1, "name": "foo" },
+                { "gid": 2, "name": "bar" },
+                { "gid": 3, "name": "baz" }
             ]
         }))
 
@@ -189,11 +189,11 @@ class FollowerFieldTestCase(unittest.TestCase):
         field = fields.FollowersField(ws)
 
         self.assertIsNone(field.get_data_from_task({
-            "id": 123,
+            "gid": 123,
             "followers": [
-                { "id": 2, "name": "foo" },
-                { "id": 3, "name": "bar" },
-                { "id": 4, "name": "baz" }
+                { "gid": 2, "name": "foo" },
+                { "gid": 3, "name": "bar" },
+                { "gid": 4, "name": "baz" }
             ]
         }))
 

@@ -2,7 +2,7 @@ from asana2sql.Field import Field, SimpleField, SqlType
 
 
 def TaskIdPrimaryKeyField():
-    return SimpleField("id", SqlType.INTEGER, primary_key=True)
+    return SimpleField("gid", "BIGINT", primary_key=True)
 
 
 def NameField():
@@ -14,11 +14,12 @@ def NotesField():
 
 
 def CreatedAtField():
-    return SimpleField("created_at", SqlType.DATETIME)
+    #return SimpleField("created_at", SqlType.DATETIME)
+    return SimpleField("created_at", "TIMESTAMP")
 
 
 def ModifiedAtField():
-    return SimpleField("modified_at", SqlType.DATETIME)
+    return SimpleField("modified_at", "TIMESTAMP")
 
 
 def CompletedField():
@@ -26,7 +27,7 @@ def CompletedField():
 
 
 def CompletedAtField():
-    return SimpleField("completed_at", SqlType.DATETIME)
+    return SimpleField("completed_at", "TIMESTAMP")
 
 
 def DueOnField():
@@ -34,7 +35,7 @@ def DueOnField():
 
 
 def DueAtField():
-    return SimpleField("due_at", SqlType.DATETIME)
+    return SimpleField("due_at", "TIMESTAMP")
 
 
 def NumHearts():
@@ -53,7 +54,7 @@ class AssigneeField(Field):
         assignee = task.get("assignee")
         if assignee:
             self._workspace.add_user(assignee)
-            return assignee.get("id", -1)
+            return assignee.get("gid", -1)
         else:
             return None
 
@@ -64,7 +65,7 @@ def AssigneeStatus():
 
 class ParentIdField(Field):
     def __init__(self):
-        super(ParentIdField, self).__init__("parent_id", SqlType.INTEGER)
+        super(ParentIdField, self).__init__("parent_id", "BIGINT")
 
     def required_fields(self):
         return ["parent"]
@@ -72,7 +73,7 @@ class ParentIdField(Field):
     def get_data_from_task(self, task):
         parent = task.get("parent")
         if parent:
-            return parent.get("id", -1)
+            return parent.get("gid", -1)
         else:
             return None
 
@@ -82,19 +83,19 @@ class ProjectsField(Field):
         self._workspace = workspace
 
     def required_fields(self):
-        return ["id", "projects.id", "projects.name"]
+        return ["gid", "projects.id", "projects.name"]
 
     def get_data_from_task(self, task):
-        projects = {project["id"]: project for project in task.get("projects", [])}
+        projects = {project["gid"]: project for project in task.get("projects", [])}
 
         new_project_ids = set(projects.keys())
-        old_project_ids = set(self._workspace.task_memberships(task["id"]))
+        old_project_ids = set(self._workspace.task_memberships(task["gid"]))
 
         for project_id in new_project_ids.difference(old_project_ids):
-            self._workspace.add_task_to_project(task["id"], projects[project_id]);
+            self._workspace.add_task_to_project(task["gid"], projects[project_id]);
 
         for project_id in old_project_ids.difference(new_project_ids):
-            self._workspace.remove_task_from_project(task["id"], project_id)
+            self._workspace.remove_task_from_project(task["gid"], project_id)
 
 
 class CustomFields(Field):
@@ -107,13 +108,13 @@ class CustomFields(Field):
         # attempt to index fields inside the custom fields then you'll just get
         # back a list of null values instead of the requested ones.  Thus we
         # just have to request it all.
-        return ["id", "custom_fields"]
+        return ["gid", "custom_fields"]
 
     def get_data_from_task(self, task):
-        custom_fields = {field["id"]: field
+        custom_fields = {field["gid"]: field
                 for field in task.get("custom_fields", [])}
         old_fields = {row.custom_field_id: row
-                for row in self._workspace.task_custom_field_values(task["id"])}
+                for row in self._workspace.task_custom_field_values(task["gid"])}
 
         for field_id, custom_field in custom_fields.items():
             if field_id in old_fields:
@@ -129,11 +130,11 @@ class CustomFields(Field):
                     custom_field.get("enum_value") == old_field.enum_value):
                         continue
 
-            self._workspace.add_custom_field_value(task["id"], custom_field)
+            self._workspace.add_custom_field_value(task["gid"], custom_field)
 
         for field_id in old_fields:
             self._workspace.remove_custom_field_value(
-                    task["id"], field_id)
+                    task["gid"], field_id)
 
 
 class FollowersField(Field):
@@ -142,20 +143,20 @@ class FollowersField(Field):
         self._workspace = workspace
 
     def required_fields(self):
-        return ["id", "followers.id", "followers.name"]
+        return ["gid", "followers.id", "followers.name"]
 
     def get_data_from_task(self, task):
-        follower_ids = {follower["id"]: follower for follower in task.get("followers", [])}
-        old_follower_ids = self._workspace.get_followers(task["id"])
+        follower_ids = {follower["gid"]: follower for follower in task.get("followers", [])}
+        old_follower_ids = self._workspace.get_followers(task["gid"])
 
         for follower_id, follower in follower_ids.items():
             if follower_id in old_follower_ids:
                 old_follower_ids.remove(follower_id)
             else:
-                self._workspace.add_follower(task["id"], follower)
+                self._workspace.add_follower(task["gid"], follower)
 
         for follower_id in old_follower_ids:
-            self._workspace.remove_follower(task["id"], follower_id)
+            self._workspace.remove_follower(task["gid"], follower_id)
 
 
 def default_fields(workspace):

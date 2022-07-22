@@ -5,7 +5,7 @@ import pyodbc
 import requests
 
 from asana2sql.fields import default_fields
-from asana2sql.project import Project
+from asana2sql.Project import Project
 from asana2sql.workspace import Workspace
 from asana2sql.db_wrapper import DatabaseWrapper
 from asana import Client, session
@@ -137,7 +137,7 @@ class RequestCountingClient(Client):
 
 def main():
     args = arg_parser().parse_args()
-
+    
     client = build_asana_client(args)
 
     db_client = None
@@ -146,12 +146,14 @@ def main():
         db_client = pyodbc.connect(args.odbc_string)
 
     db_wrapper = DatabaseWrapper(db_client, dump_sql=args.dump_sql, dry=args.dry)
-
+    print("workspace...")
     workspace = Workspace(client, db_wrapper, args)
+    print("project...")
     project = Project(
             client, db_wrapper, workspace, args, default_fields(workspace))
 
     if args.command == 'create':
+        print("create...")
         project.create_table()
         workspace.create_tables()
     elif args.command == 'export':
@@ -168,5 +170,7 @@ def main():
             db_wrapper.num_reads, db_wrapper.num_writes, db_wrapper.num_commands_executed))
 
 if __name__ == '__main__':
+    for driver in pyodbc.drivers():
+        print(driver)
     main()
 

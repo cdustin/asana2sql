@@ -3,11 +3,11 @@ import mock
 
 def project(id=1,
             name="Test Project"):
-    return {"id": id,
+    return {"gid": id,
             "name": name}
 
 def user(id=1, name="Test User"):
-    return {"id": id,
+    return {"gid": id,
             "name": name}
 
 def task(id=2,
@@ -26,7 +26,7 @@ def task(id=2,
     hearts = hearts or []
     custom_fields = custom_fields or []
     num_hearts = len(hearts)
-    return {"id": id,
+    return {"gid": id,
             "name": name,
             "notes": notes,
             "completed": completed,

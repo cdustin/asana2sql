@@ -60,4 +60,6 @@ class DatabaseWrapper(object):
         if not self._cursor:
             self._cursor = self._db_conn.cursor()
         self._num_executed += 1
+        print(sql)
+        print(*params)
         self._cursor.execute(sql, *params)

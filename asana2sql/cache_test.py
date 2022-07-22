@@ -16,22 +16,22 @@ class CacheTestCase(unittest.TestCase):
 
         self.assertIsNone(self.cache.get(3))
 
-        self.cache.add({"id": 3})
+        self.cache.add({"gid": 3})
 
-        self.assertEqual(self.cache.get(3), {"id": 3})
+        self.assertEqual(self.cache.get(3), {"gid": 3})
 
         self.seed_fn.assert_called_once()
-        self.insert_fn.assert_called_once_with({"id": 3})
+        self.insert_fn.assert_called_once_with({"gid": 3})
 
     def test_get(self):
         self.seed_fn.return_value = [row(id=1), row(id=2)]
 
         self.assertIsNone(self.cache.get(3))
 
-        self.assertEqual(self.cache.get(1), {"id": 1})
-        self.assertEqual(self.cache.get(2), {"id": 2})
-        self.assertEqual(self.cache.get(1), {"id": 1})
-        self.assertEqual(self.cache.get(2), {"id": 2})
+        self.assertEqual(self.cache.get(1), {"gid": 1})
+        self.assertEqual(self.cache.get(2), {"gid": 2})
+        self.assertEqual(self.cache.get(1), {"gid": 1})
+        self.assertEqual(self.cache.get(2), {"gid": 2})
 
         self.seed_fn.assert_called_once()
         self.insert_fn.assert_not_called()

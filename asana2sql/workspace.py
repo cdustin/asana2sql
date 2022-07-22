@@ -3,92 +3,92 @@ from asana2sql.cache import Cache
 PROJECTS_TABLE_NAME = "projects"
 CREATE_PROJECTS_TABLE = (
         """CREATE TABLE IF NOT EXISTS "{table_name}" (
-        id INTEGER NOT NULL PRIMARY KEY,
+        gid BIGINT NOT NULL PRIMARY KEY,
         name VARCHAR(1024));
         """)
 SELECT_PROJECTS = """SELECT * FROM "{table_name}";"""
 INSERT_PROJECT = (
-        """INSERT OR REPLACE INTO "{table_name}" VALUES (?, ?);""")
+        """INSERT INTO "{table_name}" VALUES (?, ?)  ON CONFLICT DO NOTHING;""")
 
 PROJECT_MEMBERSHIPS_TABLE_NAME = "project_memberships"
 CREATE_PROJECT_MEMBERSHIPS_TABLE = (
         """CREATE TABLE IF NOT EXISTS "{table_name}" (
-        task_id INTEGER NOT NULL,
-        project_id INTEGER NOT NULL,
+        task_id BIGINT NOT NULL,
+        project_id BIGINT NOT NULL,
         PRIMARY KEY (task_id, project_id));
         """)
 SELECT_PROJECT_MEMBERSHIPS = (
         """SELECT project_id FROM "{table_name}" WHERE task_id = ?;""")
 INSERT_PROJECT_MEMBERSHIP = (
-        """INSERT OR REPLACE INTO "{table_name}" VALUES (?, ?);""")
+        """INSERT INTO "{table_name}" VALUES (?, ?) ON CONFLICT DO NOTHING;""")
 DELETE_PROJECT_MEMBERSHIP = (
         """DELETE FROM "{table_name}" WHERE task_id = ? and project_id = ?;""")
 
 USERS_TABLE_NAME = "users"
 CREATE_USERS_TABLE = (
         """CREATE TABLE IF NOT EXISTS "{table_name}" (
-        id INTEGER NOT NULL PRIMARY KEY,
+        gid BIGINT NOT NULL PRIMARY KEY,
         name VARCHAR(1024));
         """)
 SELECT_USERS = 'SELECT * FROM "{table_name}";';
 INSERT_USER = (
-        """INSERT OR REPLACE INTO "{table_name}" VALUES (?, ?);""")
+        """INSERT INTO "{table_name}" VALUES (?, ?) ON CONFLICT DO NOTHING;""")
 
 FOLLOWERS_TABLE_NAME = "followers"
 CREATE_FOLLOWERS_TABLE = (
         """CREATE TABLE IF NOT EXISTS "{table_name}" (
-        task_id INTEGER NOT NULL,
-        user_id INTEGER NOT NULL,
+        task_id BIGINT NOT NULL,
+        user_id BIGINT NOT NULL,
         PRIMARY KEY (task_id, user_id));
         """)
 SELECT_FOLLOWERS = 'SELECT * from "{table_name}" WHERE task_id = ?;';
 INSERT_FOLLOWER = (
-        """INSERT OR REPLACE INTO "{table_name}" VALUES (?, ?);""")
+        """INSERT INTO "{table_name}" VALUES (?, ?) ON CONFLICT DO NOTHING;""")
 DELETE_FOLLOWER = (
         """DELETE FROM "{table_name}" WHERE user_id = ? AND task_id = ?;""")
 
 CUSTOM_FIELDS_TABLE_NAME = "custom_fields"
 CREATE_CUSTOM_FIELDS_TABLE = (
         """CREATE TABLE IF NOT EXISTS "{table_name}" (
-        id INTEGER NOT NULL PRIMARY KEY,
+        gid BIGINT NOT NULL PRIMARY KEY,
         name VARCHAR(1024),
-        type INTEGER NOT NULL);
+        type TEXT NOT NULL);
         """)
 INSERT_CUSTOM_FIELD = (
-        """INSERT OR REPLACE INTO "{table_name}" VALUES (?, ?, ?);""")
+        """INSERT INTO "{table_name}" VALUES (?, ?, ?) ON CONFLICT DO NOTHING;""")
 
 CUSTOM_FIELD_ENUM_VALUES_TABLE_NAME = "custom_field_enum_values"
 CREATE_CUSTOM_FIELD_ENUM_VALUES_TABLE = (
         """CREATE TABLE IF NOT EXISTS "{table_name}" (
-        custom_field_id INTEGER NOT NULL,
-        id INTEGER NOT NULL,
+        custom_field_id BIGINT NOT NULL,
+        gid BIGINT NOT NULL,
         name VARCHAR(1024),
         enabled BOOLEAN NOT NULL,
         color VARCHAR(64) NOT NULL,
-        PRIMARY KEY (custom_field_id, id));
+        PRIMARY KEY (custom_field_id, gid));
         """)
 SELECT_CUSTOM_FIELD_ENUM_VALUES = """SELECT * FROM {table_name};"""
 SELECT_CUSTOM_FIELD_ENUM_VALUES_FOR_CUSTOM_FIELD = (
         """SELECT * FROM {table_name} WHERE custom_field_id = ?;""")
 INSERT_CUSTOM_FIELD_ENUM_VALUE = (
-        """INSERT OR REPLACE INTO "{table_name}" VALUES (?, ?, ?, ?, ?);""")
+        """INSERT INTO "{table_name}" VALUES (?, ?, ?, ?, ?) ON CONFLICT DO NOTHING;""")
 DELETE_CUSTOM_FIELD_ENUM_VALUE = (
-        """DELETE FROM "{table_name}" WHERE id = ?;""")
+        """DELETE FROM "{table_name}" WHERE gid = ?;""")
 
 CUSTOM_FIELD_VALUES_TABLE_NAME = "custom_field_values"
 CREATE_CUSTOM_FIELD_VALUES_TABLE = (
         """CREATE TABLE IF NOT EXISTS "{table_name}" (
-        task_id INTEGER NOT NULL,
-        custom_field_id INTEGER NOT NULL,
+        task_id BIGINT NOT NULL,
+        custom_field_id BIGINT NOT NULL,
         text_value TEXT,
         number_value FLOAT,
-        enum_value INTEGER,
+        enum_value BIGINT,
         PRIMARY KEY (task_id, custom_field_id));
         """)
 SELECT_CUSTOM_FIELD_VALUES_FOR_TASK = (
         "SELECT * FROM {table_name} WHERE task_id = ?;")
 INSERT_CUSTOM_FIELD_VALUE = (
-        "INSERT OR REPLACE INTO {table_name} VALUES (?, ?, ?, ?, ?);")
+        "INSERT INTO {table_name} VALUES (?, ?, ?, ?, ?) ON CONFLICT DO NOTHING;")
 DELETE_CUSTOM_FIELD_VALUE = (
         "DELETE FROM {table_name} WHERE task_id = ? AND custom_field_id = ?;")
 
@@ -109,17 +109,17 @@ class Workspace(object):
         self.projects = Cache(
                 self._fetch_all_fn(SELECT_PROJECTS, self.projects_table_name()),
                 self._insert_fn(INSERT_PROJECT, self.projects_table_name(),
-                    ["id", "name"]))
+                    ["gid", "name"]))
         self.users = Cache(
                 self._fetch_all_fn(SELECT_USERS, self.users_table_name()),
                 self._insert_fn(INSERT_USER, self.users_table_name(),
-                    ["id", "name"]))
+                    ["gid", "name"]))
         self.custom_field_enum_values = Cache(
                 self._fetch_all_fn(SELECT_CUSTOM_FIELD_ENUM_VALUES,
                     self.custom_field_enum_values_table_name()),
                 self._insert_fn(INSERT_CUSTOM_FIELD_ENUM_VALUE,
                     self.custom_field_enum_values_table_name(),
-                    ["custom_field_id", "id", "name", "enabled", "color"]))
+                    ["custom_field_id", "gid", "name", "enabled", "color"]))
 
     def projects_table_name(self):
         return self._config.projects_table_name or PROJECTS_TABLE_NAME
@@ -190,7 +190,7 @@ class Workspace(object):
         self._db_client.write(
                 INSERT_FOLLOWER.format(
                     table_name=self.followers_table_name()),
-                (task_id, user["id"]))
+                (task_id, user["gid"]))
 
     def remove_follower(self, task_id, user_id):
         self._db_client.write(
@@ -210,7 +210,7 @@ class Workspace(object):
         self._db_client.write(
                 INSERT_PROJECT_MEMBERSHIP.format(
                     table_name=self.project_memberships_table_name()),
-                (task_id, project["id"]))
+                (task_id, project["gid"]))
 
     def remove_task_from_project(self, task_id, project_id):
         self._db_client.write(
@@ -226,20 +226,20 @@ class Workspace(object):
         the custom_field_value parameter, which is true if custom_fields are
         fetched via the task API.
         """
-        if custom_field_value["id"] in self._custom_fields_written:
+        if custom_field_value["gid"] in self._custom_fields_written:
             return
 
         self._db_client.write(
                 INSERT_CUSTOM_FIELD.format(
                     table_name=self.custom_fields_table_name()),
-                custom_field_value["id"],
+                custom_field_value["gid"],
                 custom_field_value["name"],
                 custom_field_value["type"]);
 
         if custom_field_value["type"] == "enum":
-            self.add_custom_field_enum_values(custom_field_value["id"])
+            self.add_custom_field_enum_values(custom_field_value["gid"])
 
-        self._custom_fields_written.add(custom_field_value["id"])
+        self._custom_fields_written.add(custom_field_value["gid"])
 
     def get_custom_field(self, custom_field_id):
         # NB: The python client doesn't support custom fields yet, so we have
@@ -255,9 +255,9 @@ class Workspace(object):
                 for row in self.custom_field_enum_values.get(custom_field_id) or []}
 
         for enum_option in new_enum_options:
-            if enum_option["id"] in old_enum_options:
-                old_option = old_enum_options[enum_option["id"]]
-                del(old_enum_options[enum_option["id"]])
+            if enum_option["gid"] in old_enum_options:
+                old_option = old_enum_options[enum_option["gid"]]
+                del(old_enum_options[enum_option["gid"]])
                 if (old_option.name == enum_option["name"] and
                     old_option.enabled == enum_option["enabled"] and
                     old_option.color == enum_option["color"]):
@@ -267,7 +267,7 @@ class Workspace(object):
                     INSERT_CUSTOM_FIELD_ENUM_VALUE.format(
                         table_name=self.custom_field_enum_values_table_name()),
                     custom_field_id,
-                    enum_option["id"],
+                    enum_option["gid"],
                     enum_option["name"],
                     enum_option["enabled"],
                     enum_option["color"])
@@ -291,11 +291,11 @@ class Workspace(object):
                 INSERT_CUSTOM_FIELD_VALUE.format(
                     table_name=self.custom_field_values_table_name()),
                 task_id,
-                custom_field["id"],
+                custom_field["gid"],
                 custom_field.get("text_value"),
                 custom_field.get("number_value"),
                 custom_field.get("enum_value") and
-                    custom_field.get("enum_value").get("id"))
+                    custom_field.get("enum_value").get("gid"))
 
 
     def remove_custom_field_value(self, task_id, custom_field_id):

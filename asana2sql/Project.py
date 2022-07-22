@@ -8,8 +8,9 @@ from asana2sql import workspace
 CREATE_TABLE_TEMPLATE = (
         """CREATE TABLE IF NOT EXISTS "{table_name}" ({columns});""")
 
-INSERT_OR_REPLACE_TEMPLATE = (
-        """INSERT OR REPLACE INTO "{table_name}" ({columns}) VALUES ({values});""")
+#INSERT_OR_REPLACE_TEMPLATE = ("""INSERT OR REPLACE INTO "{table_name}" ({columns}) VALUES ({values});""")
+INSERT_OR_REPLACE_TEMPLATE = ("""INSERT INTO "{table_name}" ({columns}) VALUES ({values}) ON CONFLICT (gid) DO UPDATE SET {set_command};""")
+
 
 SELECT_TEMPLATE = (
         """SELECT {columns} FROM "{table_name}";""")
@@ -60,10 +61,16 @@ class Project(object):
 
     def _tasks(self):
         if self._task_cache is None:
-            self._task_cache = list(
-                    self._asana_client.tasks.find_by_project(
-                        self._project_id, fields=",".join(self._required_fields())))
+            self._task_cache = list(self._asana_client.tasks.find_by_project(self._project_id, fields=",".join(self._required_fields())))
+            project_tasks = self._asana_client.tasks.find_by_project(self._project_id, fields=",".join(self._required_fields()))
+            for task in project_tasks:
+                task_id = task['gid']
+                sub_tasks = self._asana_client.tasks.subtasks(task_id, fields=",".join(self._required_fields()))
+                for sub_task in sub_tasks:
+                    print(sub_task['name'])
+                    self._task_cache.append(sub_task)
         return self._task_cache
+
 
     def table_name(self):
         return util.sql_safe_name(self._table_name if self._table_name else self.project_name())
@@ -78,10 +85,14 @@ class Project(object):
             self._indirect_fields.append(field)
 
     def create_table(self):
+        print("create_table...")
+        print(self.table_name())
         sql = CREATE_TABLE_TEMPLATE.format(
                 table_name=self.table_name(),
                 columns=",".join([
                         field.field_definition_sql() for field in self._direct_fields]))
+        print("db write sql:")
+        print(sql)
         self._db_client.write(sql)
 
     def export(self):
@@ -91,12 +102,21 @@ class Project(object):
     def insert_or_replace(self, task):
         columns = ",".join(field.sql_name for field in self._direct_fields)
         values = ",".join("?" for field in self._direct_fields)
+        #set_command = ",".join(field.sql_name + "=" + ("'" + field.get_data_from_task(task)+ "'") if field.get_data_from_task(task) else next for field in self._direct_fields)
+        #set_command = ",".join(field.sql_name + "=" + ("'" + field.get_data_from_task(task)+ "'") if field.get_data_from_task(task) else '' for field in self._direct_fields)
+        set_command = ''
+        for field in self._direct_fields:
+            if set_command != '' and field.get_data_from_task(task):
+                set_command = set_command + ', '
+            if field.get_data_from_task(task):
+                set_command = set_command + " " + field.sql_name + " = " + "'" + field.get_data_from_task(task) + "'" 
         params = [field.get_data_from_task(task) for field in self._direct_fields]
         self._db_client.write(
                 INSERT_OR_REPLACE_TEMPLATE.format(
                     table_name=self.table_name(),
                     columns=columns,
-                    values=values),
+                    values=values,
+                    set_command=set_command),
                 *params)
 
         for field in self._indirect_fields:
@@ -123,7 +143,7 @@ class Project(object):
             self.delete(id_to_remove)
 
     def asana_task_ids(self):
-        return set(task.get("id") for task in self._tasks())
+        return set(task.get("gid") for task in self._tasks())
 
     def _id_field(self):
         return self._direct_fields[0]  # TODO: make the id field special.

@@ -3,7 +3,7 @@ class Cache(object):
 
     """
 
-    def __init__(self, seed_fn, insert_fn, key_name="id"):
+    def __init__(self, seed_fn, insert_fn, key_name="gid"):
         self._seed_fn = seed_fn
         self._insert_fn = insert_fn
         self._key_name = key_name
